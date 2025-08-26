@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -203,16 +203,25 @@
             font-size: 0.9em;
         }
 
-        .text-table {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         th, td {
@@ -231,17 +240,65 @@
             background-color: #f5f5f5;
         }
 
-        .text-content {
+        .status-complete {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .status-partial {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .status-missing {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .rate {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .text-list {
             max-width: 300px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        .text-path {
-            font-family: monospace;
+        .text-detail {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 2px 0;
             font-size: 0.9em;
-            color: #666;
+        }
+
+        .found-text {
+            color: #28a745;
+        }
+
+        .missing-text {
+            color: #dc3545;
+        }
+
+        .spec-id {
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            font-weight: bold;
         }
 
         .error {
@@ -288,7 +345,7 @@
     <div class="container">
         <div class="header">
             <h1>📝 피그마 텍스트 검수 도구</h1>
-            <p>피그마 JSON 파일을 업로드하면 자동으로 텍스트 요소들을 추출하고 검수합니다</p>
+            <p>피그마 JSON 파일을 업로드하면 설계서와 매칭하여 텍스트 구현률을 분석합니다</p>
         </div>
 
         <div class="content">
@@ -316,7 +373,7 @@
                     <ul>
                         <li><strong>JSON 파일 업로드:</strong> 피그마에서 "Export to JSON" 기능으로 내보낸 파일을 업로드하세요</li>
                         <li><strong>JSON 내용 붙여넣기:</strong> JSON 내용을 복사해서 텍스트 영역에 붙여넣으세요</li>
-                        <li>분석이 완료되면 모든 텍스트 요소들을 테이블 형태로 확인할 수 있습니다</li>
+                        <li>분석이 완료되면 설계서와 매칭하여 텍스트 구현률을 확인할 수 있습니다</li>
                     </ul>
                 </div>
             </div>
@@ -327,15 +384,25 @@
             </div>
 
             <div class="result-section" id="resultSection">
-                <h2>📊 텍스트 검수 결과</h2>
+                <h1>📝 피그마 디자인 텍스트 검수 보고서</h1>
+                <p>생성일시: <span id="timestamp"></span></p>
                 
                 <div class="stats" id="stats">
                     <!-- 통계 카드들이 여기에 동적으로 추가됩니다 -->
                 </div>
 
-                <h3>📝 발견된 텍스트 요소들</h3>
-                <div class="text-table" id="textTable">
-                    <!-- 테이블이 여기에 동적으로 추가됩니다 -->
+                <div class="section">
+                    <h2>✅ 구현된 텍스트들</h2>
+                    <div id="implementedTable">
+                        <!-- 구현된 텍스트 테이블이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>⚠️ 미구현된 텍스트들</h2>
+                    <div id="missingTable">
+                        <!-- 미구현된 텍스트 테이블이 여기에 동적으로 추가됩니다 -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -343,6 +410,60 @@
 
     <script>
         let currentJsonData = null;
+
+        // 기본 설계서 정의 (실제로는 specification.json에서 로드)
+        const specification = [
+            {
+                id: 1,
+                name: "생성형AI캠페인-진행중",
+                requiredTexts: ["생성형AI캠페인", "진행중"]
+            },
+            {
+                id: 2,
+                name: "처리 현황(필터)",
+                requiredTexts: ["대기", "진행중", "완료", "처리 현황", "필터"]
+            },
+            {
+                id: 3,
+                name: "검색 기능",
+                requiredTexts: ["검색", "캠페인명", "상태", "생성일"]
+            },
+            {
+                id: 4,
+                name: "캠페인 목록",
+                requiredTexts: ["캠페인명", "상태", "생성일", "수정일", "생성자"]
+            },
+            {
+                id: 5,
+                name: "새 캠페인 생성",
+                requiredTexts: ["새 캠페인 생성", "생성"]
+            },
+            {
+                id: 6,
+                name: "페이지네이션",
+                requiredTexts: ["이전", "다음", "페이지"]
+            },
+            {
+                id: 7,
+                name: "상태 표시",
+                requiredTexts: ["대기", "진행중", "완료", "오류", "상태"]
+            },
+            {
+                id: 8,
+                name: "액션 버튼",
+                requiredTexts: ["편집", "삭제", "복사", "실행"]
+            },
+            {
+                id: 9,
+                name: "정렬 기능",
+                requiredTexts: ["정렬", "캠페인명", "상태", "생성일", "수정일"]
+            },
+            {
+                id: 10,
+                name: "필터 옵션",
+                requiredTexts: ["전체", "대기", "진행중", "완료", "오류", "필터"]
+            }
+        ];
 
         // 파일 업로드 처리
         document.getElementById('jsonFile').addEventListener('change', function(e) {
@@ -400,8 +521,11 @@
                 // 텍스트 요소 추출
                 const textElements = extractTextElements(currentJsonData);
                 
+                // 설계서와 매칭 분석
+                const analysis = analyzeTextImplementation(textElements);
+                
                 // 결과 표시
-                displayResults(textElements);
+                displayResults(analysis);
                 
             } catch (error) {
                 showError('분석 중 오류가 발생했습니다: ' + error.message);
@@ -446,61 +570,176 @@
             return textElements;
         }
 
-        function displayResults(textElements) {
+        function analyzeTextImplementation(textElements) {
+            const allTexts = textElements.map(elem => elem.text.toLowerCase());
+            const analysis = [];
+
+            specification.forEach(spec => {
+                const foundTexts = [];
+                const missingTexts = [];
+
+                spec.requiredTexts.forEach(requiredText => {
+                    const found = allTexts.some(text => 
+                        text.includes(requiredText.toLowerCase()) || 
+                        requiredText.toLowerCase().includes(text)
+                    );
+                    
+                    if (found) {
+                        foundTexts.push(requiredText);
+                    } else {
+                        missingTexts.push(requiredText);
+                    }
+                });
+
+                const implementationRate = (foundTexts.length / spec.requiredTexts.length) * 100;
+                let status = '부분 구현';
+                
+                if (implementationRate === 100) {
+                    status = '완전 구현';
+                } else if (implementationRate === 0) {
+                    status = '미구현';
+                }
+
+                analysis.push({
+                    id: spec.id,
+                    name: spec.name,
+                    requiredTexts: spec.requiredTexts,
+                    foundTexts: foundTexts,
+                    missingTexts: missingTexts,
+                    implementationRate: implementationRate,
+                    status: status
+                });
+            });
+
+            return analysis;
+        }
+
+        function displayResults(analysis) {
             const resultSection = document.getElementById('resultSection');
             const stats = document.getElementById('stats');
-            const textTable = document.getElementById('textTable');
+            const implementedTable = document.getElementById('implementedTable');
+            const missingTable = document.getElementById('missingTable');
+            
+            // 타임스탬프 설정
+            document.getElementById('timestamp').textContent = new Date().toLocaleString('ko-KR');
+            
+            // 통계 계산
+            const totalItems = analysis.length;
+            const completeItems = analysis.filter(item => item.status === '완전 구현').length;
+            const partialItems = analysis.filter(item => item.status === '부분 구현').length;
+            const missingItems = analysis.filter(item => item.status === '미구현').length;
             
             // 통계 표시
             stats.innerHTML = `
                 <div class="stat-card">
-                    <div class="stat-number">${textElements.length}</div>
-                    <div class="stat-label">총 텍스트 요소</div>
+                    <div class="stat-number">${totalItems}</div>
+                    <div class="stat-label">전체 설계서 항목</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${new Date().toLocaleDateString()}</div>
-                    <div class="stat-label">검수 날짜</div>
+                    <div class="stat-number">${completeItems}</div>
+                    <div class="stat-label">완전 구현</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number">${new Date().toLocaleTimeString()}</div>
-                    <div class="stat-label">검수 시간</div>
+                    <div class="stat-number">${partialItems}</div>
+                    <div class="stat-label">부분 구현</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${missingItems}</div>
+                    <div class="stat-label">미구현</div>
                 </div>
             `;
             
-            // 테이블 표시
-            if (textElements.length === 0) {
-                textTable.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">텍스트 요소를 찾을 수 없습니다.</p>';
+            // 구현된 텍스트 테이블
+            let implementedHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>설계서 ID</th>
+                            <th>설계서 항목</th>
+                            <th>필요한 텍스트</th>
+                            <th>구현된 텍스트</th>
+                            <th>구현률</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            analysis.forEach(item => {
+                const requiredTextsHTML = item.requiredTexts.map(text => 
+                    `<div class="text-detail">${text}</div>`
+                ).join('');
+                
+                const foundTextsHTML = item.foundTexts.map(text => 
+                    `<div class="text-detail found-text">✓ ${text}</div>`
+                ).join('');
+                
+                const missingTextsHTML = item.missingTexts.map(text => 
+                    `<div class="text-detail missing-text">✗ ${text}</div>`
+                ).join('');
+                
+                const statusClass = item.status === '완전 구현' ? 'status-complete' : 
+                                  item.status === '부분 구현' ? 'status-partial' : 'status-missing';
+                
+                implementedHTML += `
+                    <tr>
+                        <td><span class="spec-id">${item.id}</span></td>
+                        <td><strong>${item.name}</strong></td>
+                        <td class="text-list">${requiredTextsHTML}</td>
+                        <td class="text-list">${foundTextsHTML}${missingTextsHTML}</td>
+                        <td class="rate">${item.implementationRate.toFixed(1)}%</td>
+                        <td><span class="${statusClass}">${item.status}</span></td>
+                    </tr>
+                `;
+            });
+            
+            implementedHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            implementedTable.innerHTML = implementedHTML;
+            
+            // 미구현된 텍스트 테이블
+            const missingItemsList = analysis.filter(item => item.missingTexts.length > 0);
+            
+            if (missingItemsList.length === 0) {
+                missingTable.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">미구현된 텍스트가 없습니다.</p>';
             } else {
-                let tableHTML = `
+                let missingHTML = `
                     <table>
                         <thead>
                             <tr>
-                                <th>번호</th>
-                                <th>요소 이름</th>
-                                <th>텍스트 내용</th>
-                                <th>경로</th>
+                                <th>설계서 ID</th>
+                                <th>설계서 항목</th>
+                                <th>미구현된 텍스트</th>
+                                <th>문제점</th>
                             </tr>
                         </thead>
                         <tbody>
                 `;
                 
-                textElements.forEach((element, index) => {
-                    tableHTML += `
+                missingItemsList.forEach(item => {
+                    const missingTextsHTML = item.missingTexts.map(text => 
+                        `<div class="text-detail missing-text">${text}</div>`
+                    ).join('');
+                    
+                    missingHTML += `
                         <tr>
-                            <td>${index + 1}</td>
-                            <td>${element.name}</td>
-                            <td class="text-content" title="${element.text}">${element.text}</td>
-                            <td class="text-path">${element.path}</td>
+                            <td><span class="spec-id">${item.id}</span></td>
+                            <td><strong>${item.name}</strong></td>
+                            <td class="text-list">${missingTextsHTML}</td>
+                            <td>텍스트가 디자인에 구현되지 않았습니다.</td>
                         </tr>
                     `;
                 });
                 
-                tableHTML += `
+                missingHTML += `
                         </tbody>
                     </table>
                 `;
                 
-                textTable.innerHTML = tableHTML;
+                missingTable.innerHTML = missingHTML;
             }
             
             resultSection.style.display = 'block';
