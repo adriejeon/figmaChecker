@@ -1,0 +1,4 @@
+{
+  "status": 403,
+  "err": "Invalid scope(s): file_content:read. This endpoint requires the file_comments:read scope"
+}
