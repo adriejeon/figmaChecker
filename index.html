@@ -203,39 +203,45 @@
             font-size: 0.9em;
         }
 
-        .text-elements {
+        .text-table {
             background: white;
             border-radius: 10px;
-            padding: 20px;
-            max-height: 500px;
-            overflow-y: auto;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .text-item {
-            background: #f8f9fa;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
+        table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .text-name {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #667eea;
+            color: white;
+            font-weight: 500;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
         }
 
         .text-content {
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 5px;
-            word-break: break-all;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .text-path {
-            color: #999;
-            font-size: 0.8em;
             font-family: monospace;
+            font-size: 0.9em;
+            color: #666;
         }
 
         .error {
@@ -245,15 +251,6 @@
             border-radius: 8px;
             margin-top: 20px;
             border-left: 4px solid #dc3545;
-        }
-
-        .success {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border-left: 4px solid #28a745;
         }
 
         .help-text {
@@ -275,10 +272,6 @@
 
         .help-text li {
             margin-bottom: 5px;
-        }
-
-        .download-btn {
-            margin-top: 20px;
         }
 
         .file-info {
@@ -323,7 +316,7 @@
                     <ul>
                         <li><strong>JSON 파일 업로드:</strong> 피그마에서 "Export to JSON" 기능으로 내보낸 파일을 업로드하세요</li>
                         <li><strong>JSON 내용 붙여넣기:</strong> JSON 내용을 복사해서 텍스트 영역에 붙여넣으세요</li>
-                        <li>분석이 완료되면 모든 텍스트 요소들을 확인할 수 있습니다</li>
+                        <li>분석이 완료되면 모든 텍스트 요소들을 테이블 형태로 확인할 수 있습니다</li>
                     </ul>
                 </div>
             </div>
@@ -341,11 +334,9 @@
                 </div>
 
                 <h3>📝 발견된 텍스트 요소들</h3>
-                <div class="text-elements" id="textElements">
-                    <!-- 텍스트 요소들이 여기에 동적으로 추가됩니다 -->
+                <div class="text-table" id="textTable">
+                    <!-- 테이블이 여기에 동적으로 추가됩니다 -->
                 </div>
-
-                <button class="btn download-btn" id="downloadBtn">결과 다운로드</button>
             </div>
         </div>
     </div>
@@ -458,7 +449,7 @@
         function displayResults(textElements) {
             const resultSection = document.getElementById('resultSection');
             const stats = document.getElementById('stats');
-            const textElementsDiv = document.getElementById('textElements');
+            const textTable = document.getElementById('textTable');
             
             // 통계 표시
             stats.innerHTML = `
@@ -476,51 +467,49 @@
                 </div>
             `;
             
-            // 텍스트 요소들 표시
-            textElementsDiv.innerHTML = '';
+            // 테이블 표시
             if (textElements.length === 0) {
-                textElementsDiv.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">텍스트 요소를 찾을 수 없습니다.</p>';
+                textTable.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">텍스트 요소를 찾을 수 없습니다.</p>';
             } else {
-                textElements.forEach(element => {
-                    const elementDiv = document.createElement('div');
-                    elementDiv.className = 'text-item';
-                    elementDiv.innerHTML = `
-                        <div class="text-name">${element.name}</div>
-                        <div class="text-content">${element.text}</div>
-                        <div class="text-path">${element.path}</div>
+                let tableHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>번호</th>
+                                <th>요소 이름</th>
+                                <th>텍스트 내용</th>
+                                <th>경로</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                textElements.forEach((element, index) => {
+                    tableHTML += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${element.name}</td>
+                            <td class="text-content" title="${element.text}">${element.text}</td>
+                            <td class="text-path">${element.path}</td>
+                        </tr>
                     `;
-                    textElementsDiv.appendChild(elementDiv);
                 });
+                
+                tableHTML += `
+                        </tbody>
+                    </table>
+                `;
+                
+                textTable.innerHTML = tableHTML;
             }
             
             resultSection.style.display = 'block';
-            
-            // 다운로드 버튼 이벤트
-            document.getElementById('downloadBtn').onclick = () => downloadResults(textElements);
         }
 
         function showError(message) {
             const resultSection = document.getElementById('resultSection');
             resultSection.innerHTML = `<div class="error">❌ ${message}</div>`;
             resultSection.style.display = 'block';
-        }
-
-        function downloadResults(textElements) {
-            const data = {
-                timestamp: new Date().toISOString(),
-                totalElements: textElements.length,
-                elements: textElements
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `figma_text_analysis_${new Date().toISOString().slice(0,10)}.json`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
         }
     </script>
 </body>
